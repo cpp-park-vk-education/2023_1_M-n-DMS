@@ -5,17 +5,6 @@
 
 #include <tgbot/tgbot.h>
 
-void createOneColumnKeyboard(const std::vector<std::string>& buttonStrings, TgBot::InlineKeyboardMarkup::Ptr& kb)
-{
-  for (size_t i = 0; i < buttonStrings.size(); ++i) {
-    std::vector<TgBot::InlineKeyboardButton::Ptr> row;
-    TgBot::InlineKeyboardButton::Ptr button(new TgBot::InlineKeyboardButton);
-    button->text = buttonStrings[i];
-    row.push_back(button);
-    kb->inlineKeyboard.push_back(row);
-  }
-}
-
 int main() 
 {
     TgBot::Bot bot(getenv("TOKEN"));
@@ -54,7 +43,7 @@ int main()
             return;
         }
 
-        bot.getApi().sendMessage(message->chat->id, "Такой команды не существует. Нажмите /help или воспользуйтесь меню, чтобы попробовать доступный функционал.");
+        bot.getApi().sendMessage(message->chat->id, "Такой команды не существует. Нажмите /help или воспользуйтесь меню, чтобы просмотреть доступный функционал.");
     });
 
     try 
