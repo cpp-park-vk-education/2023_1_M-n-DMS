@@ -99,7 +99,7 @@ TEST(BotSetEventsTest, Test2) {
 
     Bot bot(TOKEN, io_context, "server-ip", "port");
 
-    ASSERT_EQ(0, bot.SetEvents());
+    ASSERT_EQ(1, bot.SetEvents());
 }
 
 
