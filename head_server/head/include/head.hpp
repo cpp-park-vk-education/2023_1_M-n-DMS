@@ -4,8 +4,8 @@
 
 class Database {
 private:
-    pqxx::result result;
-    pqxx::connection connection;
+    int result; // pqxx::result
+    int connection; // pqxx::connection
 
 public:
     Database(const std::string& dbname, const std::string& user, const std::string& password,
@@ -17,8 +17,8 @@ public:
 
     int ExecuteCommand(std::string command);
 
-    pqxx::result GetResult();
-}
+    int GetResult(); // pqxx::result
+};
 
 class Handler {
 public:
@@ -38,7 +38,7 @@ private:
     int WriteInDB();
 
     std::string FindInDB();
-}
+};
 
 class HeadServer {
 public:
