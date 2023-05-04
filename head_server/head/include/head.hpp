@@ -2,25 +2,56 @@
 
 #include <shared.hpp>
 
-class Head {
+class Database {
 private:
+    pqxx::result result;
+    pqxx::connection connection;
+
+public:
+    Database(const std::string& dbname, const std::string& user, const std::string& password,
+             const std::string& host, const std::string& port);
+
+    ~Database()
+
+    int ExecuteQuery(std::string query);
+
+    int ExecuteCommand(std::string command);
+
+    pqxx::result GetResult();
+}
+
+class Handler {
+public:
+    Handler(unsigned short port);
+
+    ~Handler()
+
+    int MakeDecision();
+
+private:
+    boost::asio::ip::tcp::socket socket;
+
+    Database database;
+
+    int GetID();
+
     int WriteInDB();
 
-    int FindInDB();
+    std::string FindInDB();
+}
+
+class HeadServer {
 public:
-    Head();
+    HeadServer(unsigned short port);
 
-    Head(const std::string& server, const std::string& port);
+    ~HeadServer();
 
-    Head(const Head &);
+    int Listen();
 
-    Head& operator=(const Head &); 
+private:
+    Handler handler;
 
-    Head (Head&& other);
+    boost::asio::ip::tcp::acceptor acceptor
 
-    Head& operator=(Head&& other);
-
-    ~Head();
-
-    int Run();
+    int SetAcceptor(unsigned short port);
 };
