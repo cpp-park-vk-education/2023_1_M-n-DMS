@@ -30,47 +30,6 @@ private:
     // pugi::xml_document client_info;
 };
 
-class ViewsManager {
-public:
-    // ViewsManager();
-    ViewsManager(std::vector<std::string> vec_ip) {}
-    ~ViewsManager() {}
-
-    int MakeDataset();
-    int FitParams();
-    int SetParams();
-    int UpdateSpace();
-    std::vector<SpaceInfo> GetSpaceInfo() {
-        std::vector<SpaceInfo> vec;
-        // SpaceInfo space_info;
-        // vec.push_back(space_info);
-
-        return vec;
-    }
-
-private:
-    std::vector<ParkingView> parking_list;
-};
-
-class Parking {
-public:
-    Parking(boost::asio::io_context& io_context, const std::string& server, const std::string& port, std::vector<std::string> vec_ip)
-                 : manager(vec_ip), 
-                 client_parking(io_context, server, port, manager.GetSpaceInfo()) {
-
-    }
-
-    ~Parking() {}
-
-    int RunParking();
-    int PushView(std::string ip);
-    int PopView(std::string ip);
-
-private:
-    ClientParking client_parking;
-    ViewsManager manager;
-};
-
 
 class Params {
 public:
@@ -108,7 +67,7 @@ private:
 
 class ParkingView {
 public:
-    ParkingView(std::string ip);
+    ParkingView(std::string ip) {}
     ~ParkingView() {}
 
     int UpdateViewDataset();
@@ -120,4 +79,51 @@ private:
     SpaceInfo space_info;
     Camera camera;
     Params params;
+};
+
+
+class ViewsManager {
+public:
+    // ViewsManager();
+    ViewsManager(std::vector<std::string> vec_ip) {
+        std::vector<ParkingView> vec;
+        for (size_t i = 0; i < vec_ip.size(); i++) {
+            ParkingView parking_view(vec_ip.at(i));
+            vec.push_back(parking_view);
+        }
+        parking_list = vec;
+    }
+
+    ~ViewsManager() {}
+
+    int MakeDataset();
+    int FitParams();
+    int SetParams();
+    int UpdateSpace();
+    std::vector<SpaceInfo> GetSpaceInfo() {
+        std::vector<SpaceInfo> vec;
+        return vec;
+    }
+
+private:
+    std::vector<ParkingView> parking_list;
+};
+
+class Parking {
+public:
+    Parking(boost::asio::io_context& io_context, const std::string& server, const std::string& port, std::vector<std::string> vec_ip)
+                 : manager(vec_ip), 
+                 client_parking(io_context, server, port, manager.GetSpaceInfo()) {
+
+    }
+
+    ~Parking() {}
+
+    int RunParking();
+    int PushView(std::string ip);
+    int PopView(std::string ip);
+
+private:
+    ClientParking client_parking;
+    ViewsManager manager;
 };
