@@ -16,3 +16,31 @@ int Database::ExecuteCommand(std::string command) {
 int Database::GetResult() {
     return 0;
 } // pqxx::result
+
+Handler::~Handler() {}
+
+int Handler::MakeDecision() {
+    return 0;
+}
+
+int Handler::GetID() {
+    return 0;
+}
+
+int Handler::WriteInDB() {
+    return 0;
+}
+
+std::string Handler::FindInDB() {
+    return "";
+}
+
+HeadServer::~HeadServer() {}
+
+int HeadServer::Listen() {
+    return 0;
+}
+
+int HeadServer::SetAcceptor(unsigned short port) {
+    return 0;
+}

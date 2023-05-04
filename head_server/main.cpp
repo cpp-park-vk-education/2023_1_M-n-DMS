@@ -1,6 +1,8 @@
 #include <head.hpp>
 
 #include <iostream>
+#include <gtest/gtest.h>
+
 
 // Define a fixture for the tests
 class DatabaseTest : public ::testing::Test {
@@ -58,6 +60,96 @@ TEST_F(DatabaseTest, GetResult) {
 
     // Check that the result is not empty
     EXPECT_EQ(result, 1); // EXPECT_FALSE(result.empty());
+}
+
+
+// Define a fixture for the tests
+class HandlerTest : public ::testing::Test {
+protected:
+    // Create a test handler and connect to it
+    void SetUp() override {
+        boost::asio::io_context io_context;
+        handler = new Handler("1", "1", "1", "1", "1", io_context);
+    }
+
+    // Disconnect from the test handler and delete the object
+    void TearDown() override {
+        delete handler;
+    }
+
+    Handler* handler;
+};
+
+// Test the MakeDecision method
+TEST_F(HandlerTest, MakeDecision) {
+    // Call the MakeDecision method
+    int decision = handler->MakeDecision();
+
+    // Check that the decision is valid
+    EXPECT_TRUE(decision == 0 || decision == 1);
+}
+
+// Test the GetID method
+TEST_F(HandlerTest, GetID) {
+    // Call the GetID method
+    int id = handler->GetID();
+
+    // Check that the ID is greater than or equal to 0
+    EXPECT_GE(id, 0);
+}
+
+// Test the WriteInDB method
+TEST_F(HandlerTest, WriteInDB) {
+    // Call the WriteInDB method
+    int rows = handler->WriteInDB();
+
+    // Check that the write succeeded
+    EXPECT_EQ(rows, 1);
+}
+
+// Test the FindInDB method
+TEST_F(HandlerTest, FindInDB) {
+    // Call the FindInDB method
+    std::string result = handler->FindInDB();
+
+    // Check that the result is not empty
+    EXPECT_FALSE(result.empty());
+}
+
+
+// Define a fixture for the tests
+class HeadServerTest : public ::testing::Test {
+protected:
+    // Create a test head server and connect to it
+    void SetUp() override {
+        boost::asio::io_context io_context;
+        server = new HeadServer("1", "1", "1", "1", "1", io_context);
+    }
+
+    // Disconnect from the test head server and delete the object
+    void TearDown() override {
+        delete server;
+    }
+
+    HeadServer* server;
+};
+
+// Test the Listen method
+TEST_F(HeadServerTest, Listen) {
+    // Call the Listen method
+    int result = server->Listen();
+
+    // Check that the result is valid
+    EXPECT_TRUE(result == 0 || result == 1);
+}
+
+// Test the SetAcceptor method
+TEST_F(HeadServerTest, SetAcceptor) {
+    // Call the SetAcceptor method
+    int result = server->SetAcceptor(1234);
+
+    // Check that the result is valid
+    EXPECT_TRUE(result == 0 || result == 1);
 }
 
 // Run the tests
