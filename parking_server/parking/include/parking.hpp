@@ -44,7 +44,6 @@ public:
     int FitParams();
     int SetDataset(cv::Mat img);
 
-
 private:
     int Fill();
 

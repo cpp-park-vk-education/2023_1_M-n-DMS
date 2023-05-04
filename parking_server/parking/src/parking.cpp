@@ -32,3 +32,31 @@ int ClientParking::Send() {
     std::cout << "Send from ClientParking" << std::endl;
     return 0;
 }
+
+int ParkingView::UpdateViewDataset() {
+    return 0;
+}
+int ParkingView::UpdateViewSpace() {
+    return 0;
+}
+int ParkingView::SetViewParams() {
+    return 0;
+}
+
+SpaceInfo ParkingView::GetSpaceInfo() {
+    SpaceInfo space_info;
+    return space_info;
+}
+
+int Params::FitParams() {
+    return 0;
+}
+
+int Params::SetDataset(cv::Mat img) {
+    return 0;
+}
+
+cv::Mat Camera::GetImage() {
+    cv::Mat img;
+    return img;
+}
