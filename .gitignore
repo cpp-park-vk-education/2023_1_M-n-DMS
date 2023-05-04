@@ -1,0 +1,8 @@
+.vscode
+build2
+build
+ffmpeg-snapshot
+dataset
+opencv
+tgbot-cpp
+pugixml

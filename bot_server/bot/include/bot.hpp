@@ -1,32 +1,53 @@
 #pragma once
 
 #include <shared.hpp>
+#include <tgbot/tgbot.h>
 
 class ClientBot : public Client {
-private:
-    std::string request; //
 public:
-    ClientBot(std::string socket, const std::string& server, //
-              const std::string& port);
+    ClientBot(boost::asio::io_context& io_context, const std::string& server, const std::string& port)
+        : resolver_(io_context), socket_(io_context) {
+        
+    }
+    
+    ~ClientBot() {}
 
-    ~ClientBot();
+    int Send() override;
 
-    int Send();
+private:
+    tcp::resolver resolver_;
+    tcp::socket socket_;
+    pugi::xml_document request;
+};
+
+class BotEvents {
+public:
+    BotEvents(boost::asio::io_context& io_context, const std::string& server, const std::string& port) 
+        : client_bot(io_context, server, port) {}
+
+    int SpaceEvent();
+    int AnyEvent();
+    int HelpEvent();
+    int StartEvent();
+
+private:
+    std::string SpaceMessage();
+    std::string AnyMessage();
+    std::string HelpMessage();
+    std::string StartMessage();
+
+    ClientBot client_bot;
 };
 
 class Bot {
-private:
-    ClientBot client_bot; 
-
-    std::string SpaceMessage();
-
-    std::string AnyMessage();
-
-    std::string HelpMessage();
-
-    std::string StartMessage();
 public:
-    Bot(std::string TOKEN);
+    Bot(std::string TOKEN, boost::asio::io_context& io_context, const std::string& server, 
+        const std::string& port) : events(io_context, server, port) {};
 
+    int RunBot();
     void SetEvents();
+
+private:
+    BotEvents events;
 };
+ 

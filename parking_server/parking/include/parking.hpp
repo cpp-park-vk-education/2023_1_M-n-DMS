@@ -14,28 +14,61 @@ struct SpaceInfo;
 
 class ClientParking : Client {
 public:
-    ClientParking(std::string socket, const std::string& server,                // tcp::socket socket
-                 const std::string& port, std::vector<SpaceInfo> space_info);
+    // ClientParking();
+    ClientParking(boost::asio::io_context& io_context, const std::string& server, const std::string& port, std::vector<SpaceInfo> space_info)
+                 : resolver_(io_context), socket_(io_context) {
 
-    ~ClientParking();
+    }
 
-    int Send();
+    ~ClientParking() {}
+
+    int Send() override;
+
+private:
+    tcp::resolver resolver_;
+    tcp::socket socket_;
+    // pugi::xml_document client_info;
+};
+
+class ViewsManager {
+public:
+    // ViewsManager();
+    ViewsManager(std::vector<std::string> vec_ip) {}
+    ~ViewsManager() {}
+
+    int MakeDataset();
+    int FitParams();
+    int SetParams();
+    int UpdateSpace();
+    std::vector<SpaceInfo> GetSpaceInfo() {
+        std::vector<SpaceInfo> vec;
+        // SpaceInfo space_info;
+        // vec.push_back(space_info);
+
+        return vec;
+    }
+
+private:
+    std::vector<ParkingView> parking_list;
 };
 
 class Parking {
 public:
-    Parking(std::vector<std::string> vec_ip);
+    Parking(boost::asio::io_context& io_context, const std::string& server, const std::string& port, std::vector<std::string> vec_ip)
+                 : manager(vec_ip), 
+                 client_parking(io_context, server, port, manager.GetSpaceInfo()) {
+
+    }
+
     ~Parking() {}
 
-    int MakeDataset();
-    int SetParams();
-    int UpdateSpace();
+    int RunParking();
     int PushView(std::string ip);
     int PopView(std::string ip);
-    std::vector<SpaceInfo> GetSpaceInfo();
 
 private:
-    std::vector<ParkingView> parking_list;
+    ClientParking client_parking;
+    ViewsManager manager;
 };
 
 
@@ -46,30 +79,30 @@ public:
     bool location_matrix[HEIGHT][WIDTH];
     int counter_matrix[HEIGHT][WIDTH];
 
-    Params();
-    ~Params();
+    Params() {}
+    ~Params() {}
     
     int FitParams();
-    int SetDataset(std::string); // std::string -> cv::Mat
+    int SetDataset(cv::Mat img);
 
 
 private:
     int Fill();
 
-    std::vector<std::string> dataset; // std::vector<cv::Mat>
+    std::vector<cv::Mat> dataset;
 };
 
 
 class Camera {
 public:
-    Camera();
-    ~Camera();
+    Camera() {}
+    ~Camera() {}
 
-    std::string GetImage(); // cv::Mat
+    cv::Mat GetImage();
 
 private:
     std::string ip;
-    std::string last_image; // cv::Mat
+    cv::Mat last_image;
 };
 
 
