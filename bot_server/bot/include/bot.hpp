@@ -44,7 +44,7 @@ public:
         const std::string& port) : events(io_context, server, port) {};
 
     int RunBot();
-    void SetEvents();
+    int SetEvents();
 
 private:
     BotEvents events;

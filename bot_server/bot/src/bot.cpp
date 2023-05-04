@@ -19,3 +19,11 @@ int BotEvents::HelpEvent() {
 int BotEvents::StartEvent() {
     return 0;
 }
+
+int Bot::RunBot() {
+    return 0;
+}
+
+int Bot::SetEvents() {
+    return 0;
+}

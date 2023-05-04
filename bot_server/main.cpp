@@ -84,6 +84,43 @@ TEST(StartEventTest, Test2) {
     ASSERT_EQ(1, events.StartEvent());
 }
 
+TEST(BotSetEventsTest, Test1) {
+    boost::asio::io_context io_context;
+    std::string TOKEN("1");
+
+    Bot bot(TOKEN, io_context, "192.168.1.1", "1234");
+
+    ASSERT_EQ(0, bot.SetEvents());
+}
+
+TEST(BotSetEventsTest, Test2) {
+    boost::asio::io_context io_context;
+    std::string TOKEN("1");
+
+    Bot bot(TOKEN, io_context, "server-ip", "port");
+
+    ASSERT_EQ(0, bot.SetEvents());
+}
+
+
+TEST(RunBotTest, Test1) {
+    boost::asio::io_context io_context;
+    std::string TOKEN("1");
+
+    Bot bot(TOKEN, io_context, "192.168.1.1", "1234");
+
+    ASSERT_EQ(0, bot.RunBot());
+}
+
+TEST(RunBotTest, Test2) {
+    boost::asio::io_context io_context;
+    std::string TOKEN("1");
+    
+    Bot bot(TOKEN, io_context, "server-ip", "port");
+
+    ASSERT_EQ(1, bot.RunBot());
+}
+
 int main(int argc, char **argv) {
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
