@@ -7,7 +7,6 @@ class ClientBot : public Client {
 public:
     ClientBot(boost::asio::io_context& io_context, const std::string& server, const std::string& port)
         : resolver_(io_context), socket_(io_context) {
-        
     }
     
     ~ClientBot() {}
@@ -17,7 +16,7 @@ public:
 private:
     tcp::resolver resolver_;
     tcp::socket socket_;
-    pugi::xml_document request;
+    // pugi::xml_document request;
 };
 
 class BotEvents {
