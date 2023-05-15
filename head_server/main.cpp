@@ -1,8 +1,6 @@
 #include <head.hpp>
 
 #include <iostream>
-#include <gtest/gtest.h>
-
 
 // Define a fixture for the tests
 class DatabaseTest : public ::testing::Test {
@@ -157,3 +155,7 @@ int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
+
+// int main() {
+//     return 0;
+// }

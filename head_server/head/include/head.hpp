@@ -25,7 +25,7 @@ public:
 class Handler {
 public:
     Handler(const std::string& dbname, const std::string& user, const std::string& password,
-             const std::string& host, const std::string& port, boost::asio::io_context& io_context) : database(dbname, user, password, host, port), socket(io_context) {};
+             const std::string& host, const std::string& port, boost::asio::io_context& io_context) : socket(io_context), database(dbname, user, password, host, port) {};
 
     ~Handler();
 
