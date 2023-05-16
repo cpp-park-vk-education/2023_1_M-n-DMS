@@ -2,13 +2,14 @@
 
 #pragma once
 
+#include <gtest/gtest.h>
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <boost/bind/bind.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/asio.hpp>
-#include "../../pugixml/src/pugixml.hpp"
+// #include "../../pugixml/src/pugixml.hpp"
 
 #include <string>
 #include <vector>
