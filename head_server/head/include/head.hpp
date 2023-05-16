@@ -4,59 +4,117 @@
 
 #include <pqxx/pqxx>
 
+using boost::asio::ip::tcp;
+
 class Database {
-private:
-    int result; // pqxx::result
-    int connection; // pqxx::connection
-
 public:
-    Database() {}
+    Database() : connection("dbname=test_db user=postgres password=postgres hostaddr=127.0.0.1 port=5432") {
+        std::string create_tables = R"(
+                          CREATE TABLE IF NOT EXISTS Parking_Lots (
+                          id SERIAL PRIMARY KEY,
+                          address VARCHAR(255)
+                          );
 
-    Database(const std::string& dbname, const std::string& user, const std::string& password,
-             const std::string& host, const std::string& port);
+                          CREATE TABLE IF NOT EXISTS Views (
+                          id SERIAL PRIMARY KEY,
+                          parking_id INTEGER REFERENCES Parking_Lots(id),
+                          image BYTEA
+                          );)";
+        ExecuteCommand(create_tables);
+    }
 
-    ~Database();
+    ~Database() {}
 
-    int ExecuteQuery(std::string query);
+    // int GetResult();
 
-    int ExecuteCommand(std::string command);
+private:
+    int ExecuteCommand(std::string command) {
+        try {
+            pqxx::work txn(connection);
+            txn.exec(command);
+            txn.commit();
+        } catch (const std::exception& e) {
+            std::cerr << "Error: " << e.what() << std::endl;
+            return 1;
+        }
+        return 0;
+    }
 
-    int GetResult(); // pqxx::result
+    int ExecuteQuery(std::string query) {
+        try {
+            pqxx::work txn(connection);
+            result = txn.exec(query);
+            txn.commit();
+        } catch (const std::exception& e) {
+            std::cerr << "Error: " << e.what() << std::endl;
+            return 1;
+        }
+        return 0;
+    }
+
+    pqxx::connection connection;
+    pqxx::result result;
 };
 
 class Handler {
 public:
-    Handler(const std::string& dbname, const std::string& user, const std::string& password,
-             const std::string& host, const std::string& port, boost::asio::io_context& io_context) : socket(io_context), database(dbname, user, password, host, port) {};
+    Handler() {};
 
-    ~Handler();
+    ~Handler() {}
 
-    int MakeDecision();
+    int HandleRequest(boost::asio::ip::tcp::socket& socket) {
+        boost::asio::streambuf request;
+        boost::asio::read_until(socket, request, "\r\n");
 
-    int GetID();
+        // Обрабатываем запрос
+        std::istream request_stream(&request);
+        std::string request_line;
+        std::getline(request_stream, request_line);
+        std::cout << "Полученный запрос: " << request_line << std::endl;
 
-    int WriteInDB();
+        // Принимаем решение
+        std::string response = MakeDecision(request_line);
 
-    std::string FindInDB();
+        // Отправляем ответ
+        boost::asio::write(socket, boost::asio::buffer(response));
+        return 0;
+    }
+
+    // int GetID();
+
+    // int WriteInDB();
+
+    // std::string FindInDB();
 
 private:
-    boost::asio::ip::tcp::socket socket;
+    std::string MakeDecision(const std::string& request) {
+        if (request == "GET / HTTP/1.1") {
+            return "HTTP/1.1 200 OK\r\nContent-Length: 12\r\n\r\nHello, World!";
+        }
+        std::cerr << "Error" << std::endl;
+    }
 
     Database database;
 };
 
 class HeadServer {
 public:
-    HeadServer(const std::string& dbname, const std::string& user, const std::string& password,
-             const std::string& host, const std::string& port, boost::asio::io_context& io_context) : handler(dbname, user, password, host, port, io_context), acceptor(io_context) {}
+    HeadServer(const short port) : io_service_(), acceptor_(io_service_, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)) {}
 
-    ~HeadServer();
+    ~HeadServer() {}
 
-    int Listen();
+    int Listen() {
+        while (true) {
+            boost::asio::ip::tcp::socket socket(io_service_);
+            acceptor_.accept(socket);
+            handler.HandleRequest(socket);
+        }
+    }
 
-    int SetAcceptor(unsigned short port);
 private:
     Handler handler;
 
-    boost::asio::ip::tcp::acceptor acceptor;
+    boost::asio::io_service io_service_;
+
+    boost::asio::ip::tcp::acceptor acceptor_;
 };
