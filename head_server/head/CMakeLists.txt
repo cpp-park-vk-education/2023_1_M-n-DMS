@@ -4,4 +4,8 @@ target_include_directories(head PUBLIC include)
 
 add_subdirectory(../../shared ../../build)
 
-target_link_libraries(head shared)
+find_package(libpqxx REQUIRED)
+
+include_directories(${LIBPQXX_INCLUDE_DIRS})
+
+target_link_libraries(head shared ${LIBPQXX_LIBRARIES} -lpqxx -lpq)

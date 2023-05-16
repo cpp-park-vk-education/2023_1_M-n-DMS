@@ -2,6 +2,8 @@
 
 #include <shared.hpp>
 
+#include <pqxx/pqxx>
+
 class Database {
 private:
     int result; // pqxx::result
