@@ -2,6 +2,20 @@
 
 #include <shared.hpp>
 #include <tgbot/tgbot.h>
+#include <boost/beast/core.hpp>
+#include <boost/beast/http.hpp>
+#include <boost/beast/version.hpp>
+#include <boost/asio/strand.hpp>
+#include <cstdlib>
+#include <functional>
+#include <iostream>
+#include <memory>
+#include <string>
+
+namespace beast = boost::beast;         // from <boost/beast.hpp>
+namespace http = beast::http;           // from <boost/beast/http.hpp>
+namespace net = boost::asio;            // from <boost/asio.hpp>
+using tcp = boost::asio::ip::tcp;
 
 class ClientBot : public Client {
 public:
@@ -21,31 +35,30 @@ private:
 
 class BotEvents {
 public:
-    BotEvents(boost::asio::io_context& io_context, const std::string& server, const std::string& port) 
-        : client_bot(io_context, server, port) {}
+    BotEvents() {}
+    // BotEvents(boost::asio::io_context& io_context, const std::string& server, const std::string& port) 
+    //     : client_bot(io_context, server, port) {}
 
-    int SpaceEvent();
-    int AnyEvent();
-    int HelpEvent();
-    int StartEvent();
+    int StartEvent(TgBot::Bot &bot);
+    int SpaceEvent(TgBot::Bot &bot);
+    int AnyEvent(TgBot::Bot &bot);
+    int HelpEvent(TgBot::Bot &bot);
 
 private:
-    std::string SpaceMessage();
-    std::string AnyMessage();
-    std::string HelpMessage();
-    std::string StartMessage();
 
-    ClientBot client_bot;
+    // ClientBot client_bot;
 };
 
-class Bot {
+class ParktronicBot {
 public:
-    Bot(std::string TOKEN, boost::asio::io_context& io_context, const std::string& server, 
-        const std::string& port) : events(io_context, server, port) {};
+    ParktronicBot() : bot(getenv("TOKEN")) {}
+    // Bot(std::string TOKEN, boost::asio::io_context& io_context, const std::string& server, 
+    //     const std::string& port) : events(io_context, server, port) {};
 
     int RunBot();
     int SetEvents();
 
+    TgBot::Bot bot;
 private:
     BotEvents events;
 };
