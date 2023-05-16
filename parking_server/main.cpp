@@ -229,5 +229,14 @@ TEST(CameraGetImageTest, Test1) {
 
 int main(int argc, char **argv) {
     testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+    // return RUN_ALL_TESTS();
+    boost::asio::io_context io_context;
+    std::vector<std::string> vec_ip;
+    vec_ip.push_back("ip1");
+    Parking parking(io_context, "server", "port", vec_ip);
+
+    parking.RunParking();
+
+    std::cout << "Parking OK" << std::endl;
+    return 0;
 }

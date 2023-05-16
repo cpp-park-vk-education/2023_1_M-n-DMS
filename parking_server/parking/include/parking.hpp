@@ -3,7 +3,7 @@
 #include <shared.hpp>
 
 #define WIDTH 1280
-#define HEIGHT 720
+#define HIGHT 720
 
 class ClientParking;
 class Parking;
@@ -16,7 +16,7 @@ class ClientParking : Client {
 public:
     // ClientParking();
     ClientParking(boost::asio::io_context& io_context, const std::string& server, const std::string& port, std::vector<SpaceInfo> space_info)
-                 : resolver_(io_context), socket_(io_context) {
+                 : resolver_(io_context), socket_(io_context), has_info(false) {
 
     }
 
@@ -24,28 +24,44 @@ public:
 
     int Send() override;
 
+    bool GetHasInfo() { return has_info; }
+
 private:
     tcp::resolver resolver_;
     tcp::socket socket_;
     // pugi::xml_document client_info;
+    bool has_info;
 };
 
 
 class Params {
 public:
-    int threshold;
+    short threshold;
+    int square;
     int min_square;
-    bool location_matrix[HEIGHT][WIDTH];
-    int counter_matrix[HEIGHT][WIDTH];
+    bool location_matrix[HIGHT][WIDTH];
+    unsigned int counter_matrix[HIGHT][WIDTH];
 
-    Params() {}
+    int min_pos_x = 2000, min_pos_y = 2000, max_pos_x = 0, max_pos_y = 0;
+
+    Params() : threshold(0), square(0), min_square(0) {
+        for (int i = 0; i < HIGHT; ++i) {
+            for (int j = 0; j < WIDTH; ++j) {
+                location_matrix[i][j] = true;
+                counter_matrix[i][j] = 0;
+            }
+        }
+    }
     ~Params() {}
     
     int FitParams();
     int SetDataset(cv::Mat img);
+    int Difference(cv::Mat bg_frame, cv::Mat cam_frame);  // +
 
 private:
-    int Fill();
+    void Fill(int (&mas)[HIGHT][WIDTH], int x, int y, int new_val, int old_val);
+    void AssignWeight(int x, int y);
+    void PrintIMG();                         // +
 
     std::vector<cv::Mat> dataset;
 };
@@ -123,6 +139,6 @@ public:
     int PopView(std::string ip);
 
 private:
-    ClientParking client_parking;
     ViewsManager manager;
+    ClientParking client_parking;
 };
