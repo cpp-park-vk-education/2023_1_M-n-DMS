@@ -8,4 +8,4 @@ find_package(GTest CONFIG REQUIRED)
 
 include_directories(${OpenCV_INCLUDE_DIRS} ${GTest_INCLUDE_DIRS})
 
-target_link_libraries(shared ${OpenCV_LIBS} ${GTest_LIBS} -pthread -lgtest -lgtest_main)
+target_link_libraries(shared ${GTest_LIBS} ${OpenCV_LIBS} -pthread -lgtest -lgtest_main)

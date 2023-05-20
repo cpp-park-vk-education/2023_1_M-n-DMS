@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include <gtest/gtest.h>
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
+#include <boost/asio.hpp>
 #include <boost/bind/bind.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/asio.hpp>
@@ -28,9 +28,7 @@ struct SpaceInfo {
 
 class Client {
 public:
-    std::vector<SpaceInfo> answer;
-
-    virtual int Send() = 0;
+    virtual int Send(const std::string& message) = 0;
 
 protected:
     int Connect();

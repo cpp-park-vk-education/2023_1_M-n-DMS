@@ -140,8 +140,14 @@ private:
     }
 
     std::string ParseBody(const std::string& http_request) {
-        int body_pos = http_request.find("\r\n\r\n");
-        std::string body = http_request.substr(body_pos + 4);
+        std::string body;
+        try {
+            int body_pos = http_request.find("\r\n\r\n");
+            body = http_request.substr(body_pos + 4);
+        } catch (std::exception& ex) {
+            std::cout << ex.what() << std::endl;
+            return "";
+        }
         return body;
     }
 
@@ -149,8 +155,14 @@ private:
         switch (ChooseCase(request)) {
             case GET_DATA: {
                 // nlohmann::json body = nlohmann::json::parse(ParseBody(request));
-                int id = stoi(ParseBody(request));
-                int free_places = database.FreePlacesByID(id);
+                int id, free_places;
+                try {
+                    id = stoi(ParseBody(request));
+                    free_places = database.FreePlacesByID(id);
+                } catch (std::exception& ex) {
+                    std::cout << ex.what() << std::endl;
+                    return "";
+                }
                 return std::to_string(free_places);
             }
             case POST_DATA: {
