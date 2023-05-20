@@ -157,7 +157,12 @@
 // }
 
 int main() {
-    HeadServer server(8080);
-    server.Listen();
+    try {
+        Server s(8080);
+        s.run();
+    } catch (std::exception& e) {
+        std::cerr << "Exception: " << e.what() << "\n";
+    }
+
     return 0;
 }
