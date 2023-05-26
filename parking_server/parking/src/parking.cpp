@@ -5,32 +5,42 @@ int Parking::RunParking() {
         std::cout << "Need to Train" << std::endl;
         manager.MakeDataset();
         manager.FitParams();
+        std::cout << "\nThe parameters are configured\n" << std::endl;
     }
 
-    // while (true) {           // с задержкой в 20 секунд
+    int cnt = 8;
+    while (cnt > 2) {           // с задержкой в 20 секунд
 
-        manager.UpdateSpace();
+        manager.UpdateSpace(cnt);
 
         std::vector<SpaceInfo> result = manager.GetSpaceInfo();
         short free_spaces = 0;
+        short all_spaces = 0;
         for (size_t i = 0; i < result.size(); ++i) {
             free_spaces += result.at(i).free_space;
+            all_spaces += result.at(i).space;
         }
 
-        std::cout << "FREE PLACES = " << free_spaces << std::endl;
+        std::string request =
+                              "{\"method\": \"POST\","
+                              "\"body\": {"
+                              "\"id\": \"" + std::to_string(1) + "\","
+                              "\"value\": \"" + std::to_string(free_spaces) + "\"}}";
 
-        std::string request = "POST / HTTP/1.1\r\n"
-                              "Host: localhost\r\n"
-                              "\r\n" +
-                              std::to_string(free_spaces);
+        std::string request_size = std::to_string(request.size());
+
+        request = request_size + " " + request;
 
         client_parking.Send(request);
 
         client_parking.Run();
 
-    // }
+        std::cout << "\nPLACES = " << free_spaces << "/" << all_spaces << std::endl;
+        cnt--;
+        sleep(5);
+    }
 
-    std::cout << "End of RunParking" << std::endl;
+    std::cout << "\nEnd of RunParking" << std::endl;
     return 0;
 }
 
@@ -64,8 +74,12 @@ int ViewsManager::MakeDataset() {
 
 int ViewsManager::FitParams() {
     for (size_t i = 0; i < parking_list.size(); ++i) {
-        parking_list.at(i).SetViewParams();
+        if (parking_list.at(i).SetViewParams() == -1) {
+            std::cerr << "ParkingView " << i << " can't set the params" << std::endl;
+        }
     }
+
+    /* exception */
 
     return 0;
 }
@@ -75,9 +89,11 @@ int ViewsManager::SetParams() {
     return 0;
 }
 
-int ViewsManager::UpdateSpace() {
+int ViewsManager::UpdateSpace(int index) {
     for (size_t i = 0; i < parking_list.size(); ++i) {
-        parking_list.at(i).UpdateViewSpace();
+        if (parking_list.at(i).UpdateViewSpace(index) == -1) {
+            std::cerr << "ParkingView " << i << " is not responding";
+        }
     }
 
     return 0;
@@ -92,56 +108,25 @@ int ParkingView::UpdateViewDataset() {
 }
 
 // ---------------------------------------------------
-int Params::CountPlaces() {
+int Params::CountPlaces(std::string format) {
     int cnt_places = 0;
-    // min_square = 1000;
-
 
     for (int i = 0; i < HIGHT; i++) {
         for (int j = 0; j < WIDTH; j++) {
-            if (counter_matrix[i][j] > 5) {
-                cnt_places++;
+            if (format == "all") {
+                if (counter_matrix[i][j] > 0) {
+                    cnt_places++;
+                }
+            } else if (format == "free") {
+                if (counter_matrix[i][j] > 0 && !location_matrix[i][j]) {
+                    cnt_places++;
+                }
+            } else {
+                std::cerr << "ERROR: incorrect format";
+                return -1;
             }
         }
     }
-
-
-
-
-    // int mas[HIGHT][WIDTH];
-
-    // for (int i = 0; i < HIGHT; i++) {
-    //     for (int j = 0; j < WIDTH; j++) {
-    //         mas[i][j] = location_matrix[i][j] == true ? 255 : 0;
-    //     }
-    // }
-
-    // PrintIMG(3);
-    // // return 0;
-
-    // for (int i = 0; i < HIGHT; i++) {
-    //     for (int j = 0; j < WIDTH; j++) {
-    //         if (mas[i][j] == 255) {
-                
-    //             Fill(mas, i, j, 254, 255);
-    //             min_pos_x = 2000, min_pos_y = 2000, max_pos_x = 0, max_pos_y = 0;
-
-    //             if (square > min_square) {
-    //                 Fill(mas, i, j, 253, 254);
-    //                 int mid_x = floor((max_pos_x - min_pos_x) / 2) + min_pos_x;
-    //                 int mid_y = floor((max_pos_y - min_pos_y) / 2) + min_pos_y;
-                    
-    //                 if ((counter_matrix[mid_x][mid_y] > height_threshold) && location_matrix[mid_x][mid_y]) {
-    //                     cnt_places++;
-    //                 }
-
-    //                 min_pos_x = 2000, min_pos_y = 2000, max_pos_x = 0, max_pos_y = 0;
-    //             }
-    //             square = 0;
-    //         }
-    //     }
-    // }   
-
 
     return cnt_places;
 }
@@ -212,28 +197,70 @@ void Params::UpdateLocationMatrix(cv::Mat dif) {
     // }
 }
 
-int ParkingView::UpdateViewSpace() {
+int ParkingView::UpdateViewSpace(int index) {
     // cv::Mat curr = camera.GetImage();               // Камера сделает фото и пришлет
     // cv::Mat last = camera.GetLastImage();
 
-    cv::Mat curr = cv::imread("../parking_server/parking/dataset/img4.jpg", 0);
-    cv::Mat last = cv::imread("../parking_server/parking/dataset/img5.jpg", 0);
+    cv::Mat last = cv::imread("../parking_server/parking/dataset/img" + std::to_string(index) + ".jpg", 0);
+    // задержка
+    cv::Mat curr = cv::imread("../parking_server/parking/dataset/img" + std::to_string(index - 1) + ".jpg", 0);
+
 
     params.rgb_threshold = 20;                      // Как настроить? (от времени суток, погоды,...?)
     
-    cv::Mat dif = params.Difference(curr, last, true);      // флаг убрать потом
+    cv::Mat dif = params.Difference(curr, last);
 
     // params.PrintIMG(dif);
 
-    space_info.space = params.CountPlaces();
 
-    std::cout << "ALL_PLACES = " << space_info.space << std::endl;
+    unsigned int vsp_matrix[HIGHT][WIDTH];
 
-    params.UpdateLocationMatrix(dif);
+    for (int i = 0; i < HIGHT; ++i) {
+        for (int j = 0; j < WIDTH; ++j) {
+            vsp_matrix[i][j] = params.counter_matrix[i][j];
+            if (params.counter_matrix[i][j] > 0) {
+                if (dif.at<unsigned char>(i, j) == 255) {
+                    vsp_matrix[i][j]++;
+                } 
+            }
+        }
+    }
 
-    int places = params.CountPlaces();
+    for (int i = 0; i < HIGHT; i++) {
+        for (int j = 0; j < WIDTH; j++) {
+            vsp_matrix[i][j] = vsp_matrix[i][j] - params.counter_matrix[i][j];
+        }
+    }
 
-    space_info.free_space = space_info.space - places;
+
+    for (int i = 0; i < HIGHT; i++) {
+        for (int j = 0; j < WIDTH; j++) {
+            if (vsp_matrix[i][j] > 0) {
+                params.location_matrix[i][j] = (params.location_matrix[i][j] == true ? false : true);
+            }
+        }
+    }
+
+
+    int result_places = params.CountPlaces("all");
+    if (result_places == -1) {
+        std::cerr << "ERROR: incorrect places counting";
+        return -1;
+    }
+
+    space_info.space = result_places;
+
+    // std::cout << "ALL_PLACES = " << space_info.space << std::endl;
+
+    // params.UpdateLocationMatrix(dif);
+
+    int result_free_places = params.CountPlaces("free");
+    if (result_free_places == -1) {
+        std::cerr << "ERROR: incorrect free places counting";
+        return -1;
+    }
+
+    space_info.free_space = space_info.space - result_free_places;
 
     // std::cout << "FREE_PLACES = " << space_info.free_space << std::endl;
 
@@ -269,7 +296,9 @@ int ParkingView::UpdateViewSpace() {
 }
 
 int ParkingView::SetViewParams() {
-    params.FitParams();
+    if (params.FitParams() == -1) {
+        return -1;
+    }
 
     return 0;
 }
@@ -374,7 +403,7 @@ void Params::Fill1(int (&mas)[HIGHT][WIDTH], int x, int y, int new_val = 254, in
     }
 }
 
-cv::Mat Params::Difference(cv::Mat bg_frame, cv::Mat cam_frame, bool flag) {
+cv::Mat Params::Difference(cv::Mat bg_frame, cv::Mat cam_frame) {
 
     int mas[HIGHT][WIDTH];
     cv::Mat diff_frame;
@@ -391,22 +420,14 @@ cv::Mat Params::Difference(cv::Mat bg_frame, cv::Mat cam_frame, bool flag) {
         }
     }
 
-    // short cnt_cars = 0;
-
     for (int i = 0; i < HIGHT; i++) {
         for (int j = 0; j < WIDTH; j++) {
             if (mas[i][j] == 255) {
                 
                 Fill(mas, i, j, 254, 255);
-                // min_pos_x = 2000, min_pos_y = 2000, max_pos_x = 0, max_pos_y = 0;
 
                 if (square > min_square) {
-                    // cnt_cars++;
                     Fill(mas, i, j, 253, 254);
-                    // int dif_x = floor((max_pos_x - min_pos_x) / 2);
-                    // int dif_y = floor((max_pos_y - min_pos_y) / 2);
-                    // AssignWeight(min_pos_x + dif_x, min_pos_y + dif_y);
-                    // min_pos_x = 2000, min_pos_y = 2000, max_pos_x = 0, max_pos_y = 0;
                 }
                 square = 0;
             }
@@ -419,19 +440,10 @@ cv::Mat Params::Difference(cv::Mat bg_frame, cv::Mat cam_frame, bool flag) {
                 mas[i][j] = 0;
                 diff_frame.at<unsigned char>(i, j) = 0;
             } else {
-                // counter_matrix[i][j]++;
-                // if (flag) {
-                    // location_matrix[i][j] == false ? location_matrix[i][j] = true : location_matrix[i][j] = false;
-                // }
+                diff_frame.at<unsigned char>(i, j) = 255;
             }
         }
     }
-
-    // PrintIMG();
-
-    // std::cout << threshold << " - CARS: " << cnt_cars  << std::endl;
-
-    // return cnt_cars;
 
     return diff_frame;
 }
@@ -455,7 +467,7 @@ int Params::ReadParams(std::string path) {
     return -1;
 }
 
-void Params::CounterMatrix(std::string path) {
+int Params::ReadMatrix(std::string path, std::string matrix) {
     std::ifstream file(path);
     std::string str;
     if (file) {
@@ -467,7 +479,16 @@ void Params::CounterMatrix(std::string path) {
                 if (str[j] != ' ' && (j != str.size())) {
                     new_str += std::to_string(str[j] - '0');
                 } else {
-                    counter_matrix[i][ind_i] = std::stoi(new_str);
+                    if (matrix == "counter") {
+                        counter_matrix[i][ind_i] = std::stoi(new_str);
+                    } else if (matrix == "binary") {
+                        location_matrix[i][ind_i] = std::stoi(new_str);
+                    }
+                    else {
+                        std::cout << "incorrect matrix NAME" << std::endl;
+                        file.close();
+                        return -1;
+                    }
                     new_str = "";
                     ind_i++;
                 }
@@ -478,141 +499,126 @@ void Params::CounterMatrix(std::string path) {
         std::cerr << "File is not found..." << std::endl;
     }
     file.close();
+    return 0;
 }
 
-void Params::BinaryMatrix(std::string path) {
-    std::ifstream file(path);
-    std::string str;
-    if (file) {
-        for (int i = 0; i < HIGHT; ++i) {
-            int ind_i = 0;
-            std::string new_str("");
-            std::getline(file, str);
-            for (size_t j = 0; j < str.size(); ++j) {
-                if (str[j] != ' ' && (j != str.size())) {
-                    new_str += std::to_string(str[j] - '0');
-                } else {
-                    location_matrix[i][ind_i] = std::stoi(new_str);
-                    new_str = "";
-                    ind_i++;
-                }
-            }
-            location_matrix[i][ind_i] = std::stoi(new_str);
-        }
-    } else {
-        std::cerr << "File is not found..." << std::endl;
-    }
-    file.close();
-}
+// void Params::BinaryMatrix(std::string path) {
+//     std::ifstream file(path);
+//     std::string str;
+//     if (file) {
+//         for (int i = 0; i < HIGHT; ++i) {
+//             int ind_i = 0;
+//             std::string new_str("");
+//             std::getline(file, str);
+//             for (size_t j = 0; j < str.size(); ++j) {
+//                 if (str[j] != ' ' && (j != str.size())) {
+//                     new_str += std::to_string(str[j] - '0');
+//                 } else {
+//                     location_matrix[i][ind_i] = std::stoi(new_str);
+//                     new_str = "";
+//                     ind_i++;
+//                 }
+//             }
+//             location_matrix[i][ind_i] = std::stoi(new_str);
+//         }
+//     } else {
+//         std::cerr << "File is not found..." << std::endl;
+//     }
+//     file.close();
+// }
 
-void Params::BinaryCorrection() {
-    int mas[HIGHT][WIDTH];
+// void Params::BinaryCorrection() {
+//     int mas[HIGHT][WIDTH];
 
-    for (int i = 0; i < HIGHT; i++) {
-        for (int j = 0; j < WIDTH; j++) {
-            mas[i][j] = location_matrix[i][j] == true ? 255 : 0;
-        }
-    }
+//     for (int i = 0; i < HIGHT; i++) {
+//         for (int j = 0; j < WIDTH; j++) {
+//             mas[i][j] = location_matrix[i][j] == true ? 255 : 0;
+//         }
+//     }
 
-    cnt_tops = 0;
-    for (int i = 0; i < HIGHT; i++) {
-        for (int j = 0; j < WIDTH; j++) {
-            if (mas[i][j] == 255) { // если True
+//     cnt_tops = 0;
+//     for (int i = 0; i < HIGHT; i++) {
+//         for (int j = 0; j < WIDTH; j++) {
+//             if (mas[i][j] == 255) { // если True
                 
-                Fill(mas, i, j, 254, 255);
-                // min_pos_x = 2000, min_pos_y = 2000, max_pos_x = 0, max_pos_y = 0;
-                // std::cout << cnt_tops << std::endl;
-                if (cnt_tops > 0) {
-                    Fill(mas, i, j, 253, 254);
-                }
-                cnt_tops = 0;
-            }
-        }
-    }
+//                 Fill(mas, i, j, 254, 255);
+//                 // min_pos_x = 2000, min_pos_y = 2000, max_pos_x = 0, max_pos_y = 0;
+//                 // std::cout << cnt_tops << std::endl;
+//                 if (cnt_tops > 0) {
+//                     Fill(mas, i, j, 253, 254);
+//                 }
+//                 cnt_tops = 0;
+//             }
+//         }
+//     }
 
-    for (int i = 0; i < HIGHT; i++) {
-        for (int j = 0; j < WIDTH; j++) {
-            if (mas[i][j] != 253) { // если НЕ парковочное место
-                location_matrix[i][j] = false;
-            }
-        }
-    }
+    // for (int i = 0; i < HIGHT; i++) {
+    //     for (int j = 0; j < WIDTH; j++) {
+//             if (mas[i][j] != 253) { // если НЕ парковочное место
+//                 location_matrix[i][j] = false;
+//             }
+//         }
+//     }
 
-    // РЕЗУЛЬТАТ: корректная матрица T/F
-}
+//     // РЕЗУЛЬТАТ: корректная матрица T/F
+// }
 
 int Params::FitParams() {
     
-    // Запустить EXE python -> создадутся 4 файла
+    // Запустить EXE python -> создадутся 4 файла   (!!! ИЛИ ПЕРЕД ЗАПУСКОМ САМИМ ЗАПУСТИТЬ EXE !!!)
     // ПОДОЖДАТЬ, пока файл отработает
 
     /* min_square */
     unsigned int min_square_ = ReadParams("../min_square_file.txt");
-    min_square = (min_square_ != -1 ? min_square_ : 1000000) - 500;
+
+    if (min_square_ == -1) {
+        std::cerr << "MIN_square wasn't calculate" << std::endl;
+        return -1;
+    }
+
+    min_square = min_square_;
+    std::cout << min_square << std::endl;
 
     /* height_threshold */
-    unsigned int height_threshold_ = ReadParams("../height_threshold_file.txt");
+    // unsigned int height_threshold_ = ReadParams("../height_threshold_file.txt");
     // height_threshold = (height_threshold_ != -1 ? height_threshold_ : 1000000);
-    height_threshold = 4;
-    // std::cout << height_threshold << std::endl;
+
+    // height_threshold = 4;
+    
 
     /* counter_matrix */
-    CounterMatrix("../counter_matrix_file.txt");
+    ReadMatrix("../counter_matrix_file.txt", "counter");
 
     /* binary_matrix */
-    BinaryMatrix("../binary_matrix_file.txt");
+    ReadMatrix("../binary_matrix_file.txt", "binary");
 
-
-    
-    BinaryCorrection(); // Корректируем матрицу T/F
-
-
-    
-
-
-    cv::Mat dif = dataset.front().clone();
     // for (int i = 0; i < HIGHT; i++) {
     //     for (int j = 0; j < WIDTH; j++) {
-    //         dif.at<unsigned char>(i, j) = counter_matrix[i][j] * 20;
-    //     }
-    // }
-
-    // int cnt_cars = 0;
-    // for (int i = 0; i < HIGHT; i++) {
-    //     for (int j = 0; j < WIDTH; j++) {
-    //         if (counter_matrix[i][j] > height_threshold) {
-    //             cnt_cars++;
+    //         if (counter_matrix[i][j] > 0) {
+    //             location_matrix[i][j] = true;
     //         }
     //     }
     // }
-    // std::cout << cnt_cars << std::endl;
-    
 
-    // unsigned int mx = 0;
+    
+    // BinaryCorrection(); // Корректируем матрицу T/F
+
+
+    // cv::Mat dif = dataset.front().clone();
+
     // for (int i = 0; i < HIGHT; i++) {
     //     for (int j = 0; j < WIDTH; j++) {
-    //         if (counter_matrix[i][j] > mx) {
-    //             mx = counter_matrix[i][j];
+    //         if (location_matrix[i][j]) {
+    //             dif.at<unsigned char>(i, j) = 255;
+    //         } else {
+    //             // dif.at<unsigned char>(i, j) = 0;
     //         }
     //     }
     // }
-    // std::cout << mx << std::endl;
-    // std::cout << height_threshold << std::endl;
-
-
-
-    for (int i = 0; i < HIGHT; i++) {
-        for (int j = 0; j < WIDTH; j++) {
-            if (location_matrix[i][j]) {
-                dif.at<unsigned char>(i, j) = 255;
-            } else {
-                dif.at<unsigned char>(i, j) = 0;
-            }
-        }
-    }
 
     // PrintIMG(dif);
 
+    return 0;
 }
 
     // for (size_t index = 0; index < dataset.size() - 1; ++index) {
@@ -676,4 +682,24 @@ cv::Mat Camera::GetImage() {
     cv::Mat img = cv::imread("../parking_server/parking/dataset/img9.jpg", 0);
 
     return img;
+}
+
+
+int GetParkingID(std::string path) {
+    std::ifstream file(path);
+    std::string str;
+    if (file) {        
+        std::getline(file, str);
+        if (str.size()) {
+            int file_info = std::stoi(str);
+            return file_info;
+        } else {
+            std::cerr << "File is empty" << std::endl;
+        }
+
+    } else {
+        std::cerr << "File is not found..." << std::endl;
+    }
+    file.close();
+    return -1;
 }

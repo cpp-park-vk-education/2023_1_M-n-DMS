@@ -3,10 +3,12 @@
 #include <shared.hpp>
 
 #include <fstream>
+#include <unistd.h>
+
 
 #define WIDTH 1280
 #define HIGHT 720
-#define HIGHT_THRESHOLD 4
+// #define HIGHT_THRESHOLD 4
 
 class ClientParking;
 class Parking;
@@ -37,6 +39,10 @@ public:
 
     ~ClientParking() {}
 
+    int Run() {
+        io_service_.run();
+    }
+
     int Send(const std::string& message) override {
         boost::asio::async_write(socket_, boost::asio::buffer(message),
         [this, message](boost::system::error_code ec, std::size_t bytes_transferred) {
@@ -49,10 +55,6 @@ public:
             // Read();
         });
     return 0;
-    }
-
-    int Run() {
-        io_service_.run();
     }
 
     bool GetHasInfo() { return has_info; }
@@ -76,6 +78,7 @@ public:
     short cnt_tops;
     bool location_matrix[HIGHT][WIDTH];
     unsigned int counter_matrix[HIGHT][WIDTH];
+    // int last_matrix[HIGHT][WIDTH];
 
     struct Point {
         int x_ind;
@@ -93,6 +96,7 @@ public:
             for (int j = 0; j < WIDTH; ++j) {
                 location_matrix[i][j] = false;
                 counter_matrix[i][j] = 0;
+                // last_matrix[i][j] = 0;
             }
         }
     }
@@ -100,14 +104,14 @@ public:
     
     int FitParams();
     int ReadParams(std::string path);
-    void CounterMatrix(std::string path);
-    void BinaryMatrix(std::string path);
-    void BinaryCorrection();
+    int ReadMatrix(std::string path, std::string matrix);
+    // void BinaryMatrix(std::string path);
+    // void BinaryCorrection();
     int SetDataset(cv::Mat img);
-    cv::Mat Difference(cv::Mat bg_frame, cv::Mat cam_frame, bool fl);
+    cv::Mat Difference(cv::Mat bg_frame, cv::Mat cam_frame);
     void UpdateLocationMatrix(cv::Mat dif);
     void PrintIMG(cv::Mat res);
-    int CountPlaces();
+    int CountPlaces(std::string format);
 
     std::vector<cv::Mat> dataset;
 
@@ -153,7 +157,7 @@ public:
     ~ParkingView() {}
 
     int UpdateViewDataset();
-    int UpdateViewSpace();
+    int UpdateViewSpace(int index);
     int SetViewParams();
     SpaceInfo GetSpaceInfo();
 
@@ -181,7 +185,7 @@ public:
     int MakeDataset();
     int FitParams();
     int SetParams();
-    int UpdateSpace();
+    int UpdateSpace(int index);
     std::vector<SpaceInfo> GetSpaceInfo();
 
 private:
@@ -206,3 +210,5 @@ private:
     ViewsManager manager;
     ClientParking client_parking;
 };
+
+int GetParkingID(std::string path);

@@ -1,6 +1,7 @@
 #include <parking.hpp>
 #include <gtest/gtest.h>
 #include <typeinfo>
+
 // #include <gmock/gmock.h>
 
 #include <iostream>
@@ -172,7 +173,7 @@ TEST(ManagerMakeUpdateSpaceTest, Test1) {
     vec_ip.push_back("192.168.1.2");
     ViewsManager manager(vec_ip);
 
-    ASSERT_EQ(0, manager.UpdateSpace());
+    ASSERT_EQ(0, manager.UpdateSpace(1));
 }
 
 TEST(UpdateViewDatasetTest, Test1) {
@@ -236,15 +237,29 @@ TEST(CameraGetImageTest, Test1) {
 int main(int argc, char **argv) {
     testing::InitGoogleTest(&argc, argv);
     // return RUN_ALL_TESTS();
+    
+    int parking_ID = GetParkingID("/home/maxim/Programming/ML-23/Modern C++ Programming/2023_1_M-n-DMS/parking_server/parking_ID.txt");
+    std::cout << "Parking ID: " << parking_ID << std::endl;
 
-    boost::asio::io_service io_service;
+    if (parking_ID != -1) {
+        std::cout << "\n...Parking #" << parking_ID << " has been started...\n" << std::endl;
 
-    std::vector<std::string> vec_ip;
-    vec_ip.push_back("ip1");
-    Parking parking(io_service, "127.0.0.1", "8080", vec_ip);
 
-    parking.RunParking();
+        boost::asio::io_service io_service;
+        std::vector<std::string> vec_ip;
+        vec_ip.push_back("ip1");
 
-    // std::cout << "Parking OK" << std::endl;
-    return 0;
+
+        Parking parking(io_service, "127.0.0.1", "8080", vec_ip);
+
+        parking.RunParking();
+
+
+        std::cout << "\n...Parking #" << parking_ID << " has been stopped...\n" << std::endl;
+        return 0;
+    }
+    else {
+        std::cerr << "ERROR_ID" << std::endl;
+        return -1;
+    }
 }

@@ -3,8 +3,10 @@
 #include <shared.hpp>
 
 #include <pqxx/pqxx>
+#include <nlohmann/json.hpp>
 
 using boost::asio::ip::tcp;
+using json = nlohmann::json;
 
 namespace http = boost::beast::http;
 
@@ -31,20 +33,20 @@ public:
 
     ~Database() {}
 
-    int FreePlacesByID(int id) {
+    std::string FreePlacesByID(std::string id) {
         std::string query = R"(
             SELECT free_places FROM views
-            WHERE parking_id = )" + std::to_string(id) + ";";
+            WHERE parking_id = )" + id + ";";
         std::cout << query << std::endl;
         ExecuteQuery(query);
-        int count = result[0][0].as<int>();
+        std::string count = result[0][0].as<std::string>();
         return count;
     }
 
-    void UpdateFreePlacesByID(int free_places, int id = 1) {
+    void UpdateFreePlacesByID(std::string free_places, std::string id = "1") {
         std::string command = 
-            "UPDATE views SET free_places = " + std::to_string(free_places) +  
-            " WHERE parking_id = " + std::to_string(id) + ";";
+            "UPDATE views SET free_places = " + free_places +  
+            " WHERE parking_id = " + id + ";";
         std::cout << command << std::endl;
         ExecuteCommand(command);
     }
@@ -80,8 +82,7 @@ private:
 
 class Connection {
 public:
-    Connection(boost::asio::io_context& io_context)
-            : socket_(io_context) {}
+    Connection(boost::asio::io_context& io_context) : socket_(io_context) {}
 
     tcp::socket& socket() {
         return socket_;
@@ -92,21 +93,24 @@ public:
                                 boost::bind(&Connection::handle_read, this,
                                             boost::asio::placeholders::error,
                                             boost::asio::placeholders::bytes_transferred));
-        // Здесь обрабатываем запрос
-        std::cout << "Полученный запрос: " << data_ << std::endl;
-
-        std::cout << "Body: " << ParseBody(data_) << std::endl;
-
-        std::cout << "Method: " << ParseMethod(data_) << std::endl;
     }
 
 private:
     void handle_read(const boost::system::error_code& error,
                      size_t bytes_transferred) {
         if (!error) {
+            // Обрабатываем запрос
+            std::string request = CutBuffer(data_);
+
+            std::cout << "Received: " << request << std::endl;
+
+            std::cout << "Method: " << ParseMethod(request) << std::endl;
+
+            std::cout << "Body: " << ParseBody(request) << std::endl;
+
             // Собираем ответ
-            std::string response = MakeDecision(data_);
-            std::cout << response << std::endl;
+            std::string response = MakeDecision(request);
+            std::cout << "Response: " << response << std::endl; 
             boost::asio::async_write(socket_,
                                      boost::asio::buffer(response),
                                      boost::bind(&Connection::handle_write, this,
@@ -128,50 +132,32 @@ private:
     }
 
     std::string ParseMethod(const std::string& http_request) {
-        http::request_parser<http::string_body> parser;
-        boost::beast::error_code ec;
-        parser.put(boost::asio::buffer(http_request), ec);
-        if (ec) {
-            std::cerr << "Error parsing request: " << ec.message() << std::endl;
-        } else {
-            http::request<http::string_body> parsed = parser.release();
-            return std::string(parsed.method_string());
-        }
+        json request = json::parse(http_request);
+        return request["method"];
     }
 
     std::string ParseBody(const std::string& http_request) {
-        std::string body;
-        try {
-            int body_pos = http_request.find("\r\n\r\n");
-            body = http_request.substr(body_pos + 4);
-        } catch (std::exception& ex) {
-            std::cout << ex.what() << std::endl;
-            return "";
-        }
-        return body;
+        json request = json::parse(http_request);
+        return request["body"].dump();
     }
 
     std::string MakeDecision(const std::string& request) {
         switch (ChooseCase(request)) {
             case GET_DATA: {
-                // nlohmann::json body = nlohmann::json::parse(ParseBody(request));
-                int id, free_places;
-                try {
-                    id = stoi(ParseBody(request));
-                    free_places = database.FreePlacesByID(id);
-                } catch (std::exception& ex) {
-                    std::cout << ex.what() << std::endl;
-                    return "";
-                }
-                return std::to_string(free_places);
+                json body = json::parse(ParseBody(request));
+                std::string id = body["id"];
+                std::string free_places = database.FreePlacesByID(id);
+                return free_places;
             }
             case POST_DATA: {
-                // nlohmann::json body = nlohmann::json::parse(ParseBody(request));
-                int free_places = stoi(ParseBody(request));
-                database.UpdateFreePlacesByID(free_places);
+                json body = json::parse(ParseBody(request));
+                std::string id = body["id"];
+                std::string value = body["value"];
+                database.UpdateFreePlacesByID(value, id);
                 return "OK";
             }
         }
+        return "OK";
     }
 
     int ChooseCase(const std::string& http_request) {
@@ -181,17 +167,22 @@ private:
         return POST_DATA;
     }
 
+    std::string CutBuffer(std::string buffer) {
+        int size = std::stoi(buffer);
+        int pos = buffer.find(" ") + 1;
+        return buffer.substr(pos, size);
+    }
+
 private:
     tcp::socket socket_;
-    enum { max_length = 1024 };
+    enum {max_length = 1024};
     char data_[max_length];
     Database database;
 };
 
 class Server {
 public:
-    Server(short port)
-            : acceptor_(io_context_, tcp::endpoint(tcp::v4(), port)) {
+    Server(short port) : acceptor_(io_context_, tcp::endpoint(tcp::v4(), port)) {
         start_accept();
     }
 
@@ -209,8 +200,7 @@ private:
                                                     boost::asio::placeholders::error));
     }
 
-    void handle_accept(Connection* new_connection,
-                       const boost::system::error_code& error) {
+    void handle_accept(Connection* new_connection, const boost::system::error_code& error) {
         if (!error) {
             new_connection->start();
         } else {

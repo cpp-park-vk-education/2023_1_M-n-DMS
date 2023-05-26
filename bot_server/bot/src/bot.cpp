@@ -60,11 +60,15 @@ int BotEvents::StartEvent(TgBot::Bot &bot) {
 }
 
 int BotEvents::SpaceEvent(TgBot::Bot &bot, ClientBot& client_bot) {
-    bot.getEvents().onCommand("place", [&bot, &client_bot](TgBot::Message::Ptr message) {
-        std::string request = "GET / HTTP/1.1\r\n"
-                              "Host: localhost\r\n"
-                              "\r\n"
-                              "1";
+    bot.getEvents().onCommand("space", [&bot, &client_bot](TgBot::Message::Ptr message) {
+        // Формируем запрос
+        std::string request =
+	                            "{\"method\": \"GET\","
+	                            "\"body\": {"
+		                        "\"id\": \"" + std::to_string(1) + "\"}}";
+        std::string request_size = std::to_string(request.size());
+        request = request_size + " " + request;
+
         client_bot.Send(request);
         client_bot.Run();
         client_bot.Restart();
@@ -82,7 +86,7 @@ int BotEvents::AnyEvent(TgBot::Bot &bot) {
             return;
         }
 
-        if (StringTools::startsWith(message->text, "/place")) {
+        if (StringTools::startsWith(message->text, "/space")) {
             return;
         }
 
