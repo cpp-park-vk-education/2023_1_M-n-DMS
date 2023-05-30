@@ -1,5 +1,7 @@
 #include "bot.hpp"
 
+using json = nlohmann::json;
+
 ClientBot::ClientBot(boost::asio::io_service& io_service, const std::string& host, const std::string& port)
     : io_service_(io_service), 
     resolver_(io_service), 
@@ -68,6 +70,8 @@ int BotEvents::SpaceEvent(TgBot::Bot &bot, ClientBot& client_bot) {
 		                        "\"id\": \"" + std::to_string(1) + "\"}}";
         std::string request_size = std::to_string(request.size());
         request = request_size + " " + request;
+
+
 
         client_bot.Send(request);
         client_bot.Run();

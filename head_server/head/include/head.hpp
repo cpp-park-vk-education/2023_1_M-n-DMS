@@ -1,9 +1,9 @@
 #pragma once
 
 #include <shared.hpp>
+#include <fstream>
 
 #include <pqxx/pqxx>
-#include <nlohmann/json.hpp>
 
 using boost::asio::ip::tcp;
 using json = nlohmann::json;
@@ -25,7 +25,7 @@ public:
                           CREATE TABLE IF NOT EXISTS Views (
                           id SERIAL PRIMARY KEY,
                           parking_id INTEGER REFERENCES Parking_Lots(id),
-                          image BYTEA,
+                          image TEXT,
                           free_places INTEGER
                           );)";
         ExecuteCommand(create_tables);
@@ -43,11 +43,29 @@ public:
         return count;
     }
 
+    std::string ImageByID(std::string id) {
+        std::string query = R"(
+            SELECT image FROM views
+            WHERE parking_id = )" + id + ";";
+        std::cout << query << std::endl;
+        ExecuteQuery(query);
+        std::string image = result[0][0].as<std::string>();
+        return image;
+    }
+
     void UpdateFreePlacesByID(std::string free_places, std::string id = "1") {
         std::string command = 
-            "UPDATE views SET free_places = " + free_places +  
+            "UPDATE views SET free_places = " + free_places +
             " WHERE parking_id = " + id + ";";
         std::cout << command << std::endl;
+        ExecuteCommand(command);
+    }
+
+    void UpdateImageByID(std::string image, std::string id = "1") {
+        std::string command = 
+            "UPDATE views SET image = '" + image + "'" +
+            " WHERE parking_id = " + id + ";";
+        std::cout << "Save image" << std::endl;
         ExecuteCommand(command);
     }
 
@@ -89,7 +107,7 @@ public:
     }
 
     void start() {
-        socket_.async_read_some(boost::asio::buffer(data_, max_length),
+        socket_.async_read_some(boost::asio::buffer(data_), //
                                 boost::bind(&Connection::handle_read, this,
                                             boost::asio::placeholders::error,
                                             boost::asio::placeholders::bytes_transferred));
@@ -104,6 +122,10 @@ private:
 
             std::cout << "Received: " << request << std::endl;
 
+            std::ofstream fs("log.txt");
+
+            fs << request;
+
             std::cout << "Method: " << ParseMethod(request) << std::endl;
 
             std::cout << "Body: " << ParseBody(request) << std::endl;
@@ -112,7 +134,7 @@ private:
             std::string response = MakeDecision(request);
             std::cout << "Response: " << response << std::endl; 
             boost::asio::async_write(socket_,
-                                     boost::asio::buffer(response),
+                                     boost::asio::buffer(response), //
                                      boost::bind(&Connection::handle_write, this,
                                                  boost::asio::placeholders::error));
         } else {
@@ -122,7 +144,7 @@ private:
 
     void handle_write(const boost::system::error_code& error) {
         if (!error) {
-            socket_.async_read_some(boost::asio::buffer(data_, max_length),
+            socket_.async_read_some(boost::asio::buffer(data_), //
                                     boost::bind(&Connection::handle_read, this,
                                                 boost::asio::placeholders::error,
                                                 boost::asio::placeholders::bytes_transferred));
@@ -147,13 +169,19 @@ private:
                 json body = json::parse(ParseBody(request));
                 std::string id = body["id"];
                 std::string free_places = database.FreePlacesByID(id);
-                return free_places;
+                std::string image_path = database.ImageByID(id);
+                std::string response =
+                              "{\"value\": \"" + free_places + "\","
+                              "\"photo\": \"" + image_path + "\"}";
+                return response;
             }
             case POST_DATA: {
                 json body = json::parse(ParseBody(request));
                 std::string id = body["id"];
                 std::string value = body["value"];
                 database.UpdateFreePlacesByID(value, id);
+                std::string photo = body["photo"];
+                database.UpdateImageByID(photo, id);
                 return "OK";
             }
         }
@@ -175,7 +203,7 @@ private:
 
 private:
     tcp::socket socket_;
-    enum {max_length = 1024};
+    enum {max_length = 100000000};
     char data_[max_length];
     Database database;
 };

@@ -1,5 +1,16 @@
 #include "parking.hpp"
 
+std::string imageToString(const cv::Mat& image) {
+    std::vector<uchar> buffer;
+    std::vector<int> params;
+    params.push_back(cv::IMWRITE_JPEG_QUALITY);
+    params.push_back(20);  // JPEG quality (0-100)
+    cv::imencode(".jpg", image, buffer, params);
+    std::string encodedImage(buffer.begin(), buffer.end());
+    encodedImage = base64::to_base64(encodedImage);
+    return encodedImage;
+}
+
 int Parking::RunParking() {
     if (!client_parking.GetHasInfo()) {
         std::cout << "Need to Train" << std::endl;
@@ -21,11 +32,16 @@ int Parking::RunParking() {
             all_spaces += result.at(i).space;
         }
 
+        // Здесь загрузить нужное изображение
+        // cv::Mat image = cv::imread("../parking_server/parking/dataset/img1.jpg");
+        // std::string imageString = imageToString(image);
+
         std::string request =
                               "{\"method\": \"POST\","
                               "\"body\": {"
                               "\"id\": \"" + std::to_string(1) + "\","
-                              "\"value\": \"" + std::to_string(free_spaces) + "\"}}";
+                              "\"value\": \"" + std::to_string(free_spaces) + "\","
+                              "\"photo\": \"" + "../parking_server/parking/dataset/img1.jpg" + "\"}}";
 
         std::string request_size = std::to_string(request.size());
 
