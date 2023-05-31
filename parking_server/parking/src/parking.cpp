@@ -41,7 +41,7 @@ int Parking::RunParking() {
                               "\"body\": {"
                               "\"id\": \"" + std::to_string(1) + "\","
                               "\"value\": \"" + std::to_string(free_spaces) + "\","
-                              "\"photo\": \"" + "../parking_server/parking/dataset/img1.jpg" + "\"}}";
+                              "\"photo\": \"" + "../parking_server/parking/dataset/" + "img" + std::to_string(cnt + 2) + ".jpg" + "\"}}";
 
         std::string request_size = std::to_string(request.size());
 
