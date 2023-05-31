@@ -53,7 +53,6 @@ public:
          const std::string& port) : bot(getenv("TOKEN")), events(io_service, host, port) {};
 
     int RunBot();
-    int SetEvents();
 
     TgBot::Bot bot;
 private:

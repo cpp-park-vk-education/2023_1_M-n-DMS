@@ -56,7 +56,7 @@ int ClientBot::Send(const std::string& message) {
 
 int BotEvents::StartEvent(TgBot::Bot &bot) {
     bot.getEvents().onCommand("start", [&bot](TgBot::Message::Ptr message) {
-        bot.getApi().sendMessage(message->chat->id, "<b>Добро пожаловать в сервис Parktronic!</b>\n\nБот поможет быстро найти свободные парковочные места.\n\n/place - <b>Свободное парковочое место</b>", false, 0, nullptr, "HTML");
+        bot.getApi().sendMessage(message->chat->id, "<b>Добро пожаловать в сервис Parktronic!</b>\n\nБот поможет быстро найти свободные парковочные места.\n\n/space - <b>Свободное парковочое место</b>", false, 0, nullptr, "HTML");
     });
     return 0;
 }
@@ -65,9 +65,9 @@ int BotEvents::SpaceEvent(TgBot::Bot &bot, ClientBot& client_bot) {
     bot.getEvents().onCommand("space", [&bot, &client_bot](TgBot::Message::Ptr message) {
         // Формируем запрос
         std::string request =
-	                            "{\"method\": \"GET\","
-	                            "\"body\": {"
-		                        "\"id\": \"" + std::to_string(1) + "\"}}";
+                              "{\"method\": \"GET\","
+                              "\"body\": {"
+                            "\"id\": \"" + std::to_string(1) + "\"}}";
         std::string request_size = std::to_string(request.size());
         request = request_size + " " + request;
 
@@ -81,9 +81,13 @@ int BotEvents::SpaceEvent(TgBot::Bot &bot, ClientBot& client_bot) {
 
         std::string path = response["photo"];
 
-        bot.getApi().sendMessage(message->chat->id, "Количество свободных мест: " + value);
+        if (value != "0" && value != "") {
+            bot.getApi().sendMessage(message->chat->id, "🅿️ Aдрес парковки: <b>ул. Бауманская, 25</b>\n\n✅ Количество свободных мест: <b>" + value + "</b>", false, 0, nullptr, "HTML");
 
-        bot.getApi().sendPhoto(message->chat->id, TgBot::InputFile::fromFile(path, "image/jpeg"));
+            bot.getApi().sendPhoto(message->chat->id, TgBot::InputFile::fromFile(path, "image/jpeg"));
+        } else {
+            bot.getApi().sendMessage(message->chat->id, "🅿️ Aдрес парковки: <b>ул. Бауманская, 25</b>\n\n❌ Cвободных мест нет", false, 0, nullptr, "HTML");
+        }
     });
 
     return 0;
@@ -104,14 +108,15 @@ int BotEvents::AnyEvent(TgBot::Bot &bot) {
             return;
         }
 
-        bot.getApi().sendMessage(message->chat->id, "Такой команды не существует. Нажмите /help или воспользуйтесь меню, чтобы просмотреть доступный функционал.");
+
+    bot.getApi().sendMessage(message->chat->id, "Такой команды не существует. Нажмите /help или воспользуйтесь меню, чтобы просмотреть доступный функционал.");
     });
     return 0;
 }
 
 int BotEvents::HelpEvent(TgBot::Bot &bot) {
     bot.getEvents().onCommand("help", [&bot](TgBot::Message::Ptr message) {
-        bot.getApi().sendMessage(message->chat->id, "Бот поможет быстро найти свободные парковочные места.\n\n/place - <b>Свободное парковочое место</b>", false, 0, nullptr, "HTML");
+        bot.getApi().sendMessage(message->chat->id, "Бот поможет быстро найти свободные парковочные места.\n\n/space - <b>Свободное парковочое место</b>", false, 0, nullptr, "HTML");
     });
 
     return 0;
@@ -126,8 +131,6 @@ int ParktronicBot::RunBot() {
     events.AnyEvent(bot);
 
     events.HelpEvent(bot);
-
-    //events.client_bot.Run();
 
     try {
         std::cout << "Bot username: " + bot.getApi().getMe()->username << std::endl;
@@ -151,8 +154,4 @@ int ClientBot::Run() {
 
 int ClientBot::Restart() {
     io_service_.restart();
-} 
-
-int ParktronicBot::SetEvents() {
-    return 0;
 }
