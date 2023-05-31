@@ -71,13 +71,19 @@ int BotEvents::SpaceEvent(TgBot::Bot &bot, ClientBot& client_bot) {
         std::string request_size = std::to_string(request.size());
         request = request_size + " " + request;
 
-
-
         client_bot.Send(request);
         client_bot.Run();
         client_bot.Restart();
-        bot.getApi().sendMessage(message->chat->id, client_bot.response_data_);
-        //bot.getApi().sendPhoto(message->chat->id, TgBot::InputFile::fromFile("../example.jpg", "image/jpeg"));
+
+        json response = json::parse(client_bot.response_data_);
+
+        std::string value = response["value"];
+
+        std::string path = response["photo"];
+
+        bot.getApi().sendMessage(message->chat->id, "Количество свободных мест: " + value);
+
+        bot.getApi().sendPhoto(message->chat->id, TgBot::InputFile::fromFile(path, "image/jpeg"));
     });
 
     return 0;
